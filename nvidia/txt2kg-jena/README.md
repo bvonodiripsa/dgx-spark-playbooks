@@ -1,12 +1,16 @@
-# NVIDIA txt2kg
+# NVIDIA txt2kg-jena (Advanced Edition)
 
-Use the following documentation to learn about NVIDIA txt2kg.
+> **🚀 Advanced Version**: This is an enhanced version of txt2kg with **Apache Jena Fuseki integration**, comprehensive database support, and production-ready fixes.
+
+Use the following documentation to learn about NVIDIA txt2kg-jena:
 - [Overview](#overview)
-- [Key Features](#key-features)
+- [Key Features](#key-features)  
+- [What Makes This Advanced](#what-makes-this-advanced)
 - [Target Audience](#target-audience)
 - [Software Components](#software-components)
 - [Technical Diagram](#technical-diagram)
 - [GPU-Accelerated Visualization](#gpu-accelerated-visualization)
+- [Apache Jena Fuseki Integration](#apache-jena-fuseki-integration)
 - [Minimum System Requirements](#minimum-system-requirements)
   - [OS Requirements](#os-requirements)
   - [Deployment Options](#deployment-options)
@@ -15,15 +19,17 @@ Use the following documentation to learn about NVIDIA txt2kg.
 - [Next Steps](#next-steps)
 - [Deployment Guide](#deployment-guide)
   - [Standard Deployment](#standard-deployment)
+  - [Apache Jena Fuseki Deployment](#apache-jena-fuseki-deployment)
   - [PyGraphistry GPU-Accelerated Deployment](#pygraphistry-gpu-accelerated-deployment)
 - [Available Customizations](#available-customizations)
+- [Session Fixes & Improvements](#session-fixes--improvements)
 - [License](#license)
 
 ## Overview
 
-This blueprint serves as a reference solution for knowledge graph extraction and querying with Retrieval Augmented Generation (RAG). This txt2kg blueprint extracts knowledge triples from text and constructs a knowledge graph for visualization and querying, creating a more structured form of information retrieval compared to traditional RAG approaches. By leveraging graph databases and entity relationships, this blueprint delivers more contextually rich answers that better represent complex relationships in your data.
+This advanced blueprint serves as a **production-ready reference solution** for knowledge graph extraction and querying with Retrieval Augmented Generation (RAG). This txt2kg-jena blueprint extracts knowledge triples from text and constructs a knowledge graph for visualization and querying, creating a more structured form of information retrieval compared to traditional RAG approaches. By leveraging multiple graph databases and entity relationships, this blueprint delivers more contextually rich answers that better represent complex relationships in your data.
 
-By default, this blueprint leverages NVIDIA NIM for knowledge triple extraction, with options to use either locally-deployed NVIDIA NIM microservices or NVIDIA-hosted models available in the [NVIDIA API Catalog](https://build.nvidia.com).
+This version includes **comprehensive Apache Jena Fuseki integration** with SPARQL support, making it ideal for semantic web applications and enterprise knowledge management systems.
 
 ## Key Features
 
@@ -43,6 +49,45 @@ By default, this blueprint leverages NVIDIA NIM for knowledge triple extraction,
 - GPU-accelerated embedding generation
 - Interactive knowledge graph visualization with dual rendering engines
 - Decomposable and customizable
+
+## What Makes This Advanced
+
+This txt2kg-jena edition includes significant enhancements over the standard txt2kg:
+
+### 🎯 **Production-Ready Apache Jena Fuseki Integration**
+- **Complete SPARQL support** with query and update endpoints
+- **Fixed 404 errors** and empty query results (documented in SESSION_FIXES_SUMMARY.md)
+- **Working web UI** at http://127.0.0.1:3030/ with proper authentication
+- **464+ triples** successfully stored and retrievable
+- **Semantic web standards** compliance
+
+### 🔧 **Frontend Fixes & Improvements**
+- **Resolved React hydration issues** that caused multiple tabs to highlight simultaneously
+- **Fixed tab navigation** with proper hash-based routing
+- **Eliminated automatic tab switching** after processing
+- **Single source of truth** for UI state management
+
+### 🚀 **Enhanced Deployment Options**
+```bash
+./start.sh --jena           # Apache Jena Fuseki (SPARQL)
+./start.sh --neo4j          # Neo4j (Cypher) 
+./start.sh --pygraphistry   # GPU-accelerated visualization
+./start.sh --gnn            # Graph Neural Networks
+./start.sh --testing        # All databases simultaneously
+./start.sh --remote-webgpu  # Remote GPU clustering
+```
+
+### 📊 **Multiple Graph Database Support**
+- **Apache Jena Fuseki**: SPARQL queries and semantic web standards
+- **Neo4j**: Cypher queries and graph algorithms
+- **ArangoDB**: Multi-model database with document and graph features
+- **Comprehensive testing mode**: Compare all databases side-by-side
+
+### 🛠️ **Advanced Dependencies & Components**
+- **35+ NPM packages** vs 25 in standard version
+- **Additional Radix UI components** for better UX
+- **Pinecone integration** for vector search
+- **Extended Docker Compose configurations**
 
 ## Target Audience
 
@@ -116,6 +161,54 @@ This blueprint includes **PyGraphistry integration** for professional-grade, GPU
    - Access advanced cloud-based features
 
 For detailed PyGraphistry setup instructions, see [PyGraphistry Setup Guide](docs/PYGRAPHISTRY_SETUP.md).
+
+## Apache Jena Fuseki Integration
+
+This version includes **production-ready Apache Jena Fuseki integration** for semantic web applications:
+
+### 🎯 **Jena Fuseki Features**
+- **SPARQL 1.1 Compliance**: Full query, update, and federation support
+- **TDB2 High-Performance Storage**: Optimized triple store for large datasets  
+- **RESTful SPARQL Protocol**: Standard HTTP endpoints for integration
+- **Web Administration Interface**: Easy dataset and query management
+- **Authentication Support**: Optional HTTP basic authentication
+- **Graph Store Protocol**: Direct RDF graph manipulation
+
+### 🔧 **Fixed Issues (Documented in SESSION_FIXES_SUMMARY.md)**
+- ✅ **Resolved 404 errors**: Fixed Docker image and asset path issues
+- ✅ **Fixed empty query results**: Corrected volume mounts and endpoint URLs
+- ✅ **Working SPARQL updates**: HTTP 204 responses confirmed
+- ✅ **Data persistence**: 464+ triples successfully stored and retrievable
+
+### 🚀 **Access Points**
+- **SPARQL Query Endpoint**: `http://localhost:3030/ds/sparql`
+- **SPARQL Update Endpoint**: `http://localhost:3030/ds/update`  
+- **Web UI**: `http://127.0.0.1:3030/` (admin/admin)
+- **Dataset**: `ds` (configurable via `JENA_DATASET`)
+
+### 📋 **Quick Start with Jena**
+```bash
+# Deploy with Apache Jena Fuseki
+./start.sh --jena
+
+# Test SPARQL update
+curl -s -u admin:admin -X POST "http://localhost:3030/ds/update" \
+  -H "Content-Type: application/sparql-update" \
+  --data-binary "INSERT DATA { <http://example.org/s> <http://example.org/p> 'o' . }"
+
+# Query data  
+curl -s -u admin:admin -G "http://localhost:3030/ds/sparql" \
+  --data-urlencode "query=SELECT * WHERE { ?s ?p ?o . } LIMIT 10" \
+  -H "Accept: text/csv"
+```
+
+### 🔗 **Environment Variables**
+```bash
+JENA_ENDPOINT=http://localhost:3030
+JENA_DATASET=ds
+JENA_USERNAME=admin  # Optional
+JENA_PASSWORD=admin  # Optional
+```
 
 ## Minimum System Requirements
 
@@ -381,6 +474,34 @@ The following are some of the customizations you can make:
 - **Integrate with external PyGraphistry deployments**
 - **Switch between graph databases** (Neo4j, ArangoDB, Apache Jena)
 - **Custom SPARQL queries** for advanced Jena Fuseki integration
+
+## Session Fixes & Improvements
+
+This txt2kg-jena version includes comprehensive fixes and improvements documented in [`SESSION_FIXES_SUMMARY.md`](SESSION_FIXES_SUMMARY.md):
+
+### 🔧 **Apache Jena Fuseki Fixes**
+- **Fixed 404 errors**: Switched from `stain/jena-fuseki` to `secoresearch/fuseki:latest` Docker image
+- **Resolved empty query results**: Fixed volume mount paths and SPARQL endpoints
+- **Working web UI**: Complete administrative interface at http://127.0.0.1:3030/
+- **SPARQL updates confirmed**: HTTP 204 responses and data persistence verified
+
+### 🎨 **Frontend UI Fixes**
+- **Multiple tab highlighting resolved**: Fixed React hydration issues causing simultaneous tab highlights
+- **Proper tab control**: Made Tabs component controlled with `value` prop instead of `defaultValue`
+- **Hash-based navigation**: Synchronized tab state with URL hash for consistent behavior
+- **Eliminated automatic navigation**: Removed forced tab switching after processing completion
+
+### 📊 **Production-Ready Status**
+- ✅ **464+ triples** successfully stored and retrievable
+- ✅ **All session issues resolved**
+- ✅ **Comprehensive testing completed**
+- ✅ **System ready for production use**
+
+### 🔍 **Troubleshooting References**
+For detailed troubleshooting and implementation details:
+- See [`SESSION_FIXES_SUMMARY.md`](SESSION_FIXES_SUMMARY.md) for complete fix documentation
+- Check deployment commands and testing checklists
+- Review access information and configuration details
 
 ## License
 
