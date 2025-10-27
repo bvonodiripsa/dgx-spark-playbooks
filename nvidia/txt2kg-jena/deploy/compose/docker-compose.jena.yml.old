@@ -1,0 +1,186 @@
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    ports:
+      - '3001:3000'
+    environment:
+      - JENA_ENDPOINT=http://jena-fuseki:3030
+      - JENA_DATASET=txt2kg
+      - JENA_USERNAME=${JENA_USERNAME:-admin}
+      - JENA_PASSWORD=${JENA_PASSWORD:-admin}
+      - PINECONE_HOST=entity-embeddings
+      - PINECONE_PORT=5081
+      - PINECONE_API_KEY=pclocal
+      - PINECONE_ENVIRONMENT=local
+      - LANGCHAIN_TRACING_V2=true
+      - SENTENCE_TRANSFORMER_URL=http://sentence-transformers:80
+      - MODEL_NAME=all-MiniLM-L6-v2
+      - GRPC_SSL_CIPHER_SUITES=HIGH+ECDSA:HIGH+aRSA
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+      - OLLAMA_BASE_URL=http://ollama:11434/v1
+      - OLLAMA_MODEL=llama3.1:8b
+      - VLLM_BASE_URL=http://vllm:8001/v1
+      - VLLM_MODEL=meta-llama/Llama-3.2-3B-Instruct
+      - REMOTE_WEBGPU_SERVICE_URL=http://txt2kg-remote-webgpu:8083
+      # Node.js timeout configurations for large model processing
+      - NODE_OPTIONS=--max-http-header-size=80000
+      - UV_THREADPOOL_SIZE=128
+    networks:
+      - pinecone-net
+      - default
+      - txt2kg-network
+    depends_on:
+      jena-fuseki:
+        condition: service_healthy
+
+  jena-fuseki:
+    image: secoresearch/fuseki:latest
+    container_name: jena-fuseki
+    ports:
+      - '3030:3030'
+    environment:
+      - ADMIN_PASSWORD=${JENA_PASSWORD:-admin}
+      - FUSEKI_DATASET_1=txt2kg
+      - FUSEKI_DATASET_2=test
+      # Enable CORS for web applications
+      - JAVA_OPTIONS=-Xmx2g -Xms1g
+    volumes:
+      - jena_data:/fuseki/databases
+      - jena_config:/fuseki/configuration
+    networks:
+      - default
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3030/$/ping" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # Initialize Jena Fuseki with default datasets
+  jena-init:
+    image: curlimages/curl:latest
+    depends_on:
+      jena-fuseki:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: >
+      sh -c "
+        echo 'Waiting for Jena Fuseki to be ready...' &&
+        sleep 15 &&
+        echo 'Creating txt2kg dataset...' &&
+        curl -X POST 'http://jena-fuseki:3030/$$/datasets' \
+          -H 'Content-Type: application/x-www-form-urlencoded' \
+          -d 'dbName=txt2kg&dbType=tdb2' \
+          --user admin:${JENA_PASSWORD:-admin} \
+          --fail-with-body || echo 'Dataset creation failed or already exists' &&
+        echo 'Jena Fuseki initialization completed'
+      "
+    networks:
+      - default
+
+  entity-embeddings:
+    image: ghcr.io/pinecone-io/pinecone-index:latest
+    container_name: entity-embeddings
+    environment:
+      PORT: 5081
+      INDEX_TYPE: serverless
+      VECTOR_TYPE: dense
+      DIMENSION: 384
+      METRIC: cosine
+      INDEX_NAME: entity-embeddings
+    ports:
+      - "5081:5081"
+    platform: linux/amd64
+    networks:
+      - pinecone-net
+    restart: unless-stopped
+
+  sentence-transformers:
+    build:
+      context: ../../deploy/services/sentence-transformers
+      dockerfile: Dockerfile
+    ports:
+      - '8000:80'
+    environment:
+      - MODEL_NAME=all-MiniLM-L6-v2
+    networks:
+      - default
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama-compose
+    ports:
+      - '11434:11434'
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_GPU_LAYERS=999 # Use maximum GPU layers
+      - OLLAMA_GPU_MEMORY_FRACTION=0.9 # Use 90% of GPU memory
+      - CUDA_VISIBLE_DEVICES=0 # Use GPU 0
+      - OLLAMA_NUM_PARALLEL=1 # Process one request at a time for better GPU utilization
+    networks:
+      - default
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+
+  vllm:
+    build:
+      context: ../../deploy/services/vllm
+      dockerfile: Dockerfile
+    container_name: vllm-service
+    ports:
+      - '8001:8001'
+    environment:
+      - VLLM_MODEL=meta-llama/Llama-3.2-3B-Instruct
+      - VLLM_TENSOR_PARALLEL_SIZE=1
+      - VLLM_MAX_MODEL_LEN=4096
+      - VLLM_GPU_MEMORY_UTILIZATION=0.9
+      - VLLM_QUANTIZATION=fp8
+      - VLLM_KV_CACHE_DTYPE=fp8
+      - VLLM_PORT=8001
+      - VLLM_HOST=0.0.0.0
+    volumes:
+      - vllm_models:/app/models
+      - /tmp:/tmp
+    networks:
+      - default
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8001/v1/models" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  jena_data:
+    driver: local
+  jena_config:
+    driver: local
+  ollama_data:
+  vllm_models:
+
+
+networks:
+  pinecone-net:
+    name: pinecone
+  default:
+    driver: bridge
+  txt2kg-network:
+    driver: bridge

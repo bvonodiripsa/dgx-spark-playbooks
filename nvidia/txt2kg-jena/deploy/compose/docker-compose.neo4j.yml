@@ -1,0 +1,61 @@
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    ports:
+      - '3001:3000'
+    environment:
+      - NEO4J_URI=bolt://localhost:7687
+      - PINECONE_HOST=localhost
+      - PINECONE_PORT=5081
+      - PINECONE_API_KEY=pclocal
+      - PINECONE_ENVIRONMENT=local
+      - LANGCHAIN_TRACING_V2=true
+      - SENTENCE_TRANSFORMER_URL=http://localhost:8000
+      - MODEL_NAME=all-MiniLM-L6-v2
+      - GRPC_SSL_CIPHER_SUITES=HIGH+ECDSA:HIGH+aRSA
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+      # - XAI_API_KEY=${XAI_API_KEY}  # xAI integration removed
+    networks:
+      - pinecone-net
+      - default
+  neo4j:
+    image: neo4j:latest
+    ports:
+      - '7474:7474'
+      - '7687:7687'
+    environment:
+      NEO4J_AUTH: none
+  entity-embeddings:
+    image: ghcr.io/pinecone-io/pinecone-index:latest
+    container_name: entity-embeddings
+    environment:
+      PORT: 5081
+      INDEX_TYPE: serverless
+      VECTOR_TYPE: dense
+      DIMENSION: 384
+      METRIC: cosine
+      INDEX_NAME: entity-embeddings
+    ports:
+      - "5081:5081"
+    platform: linux/amd64
+    networks:
+      - pinecone-net
+    restart: unless-stopped
+  sentence-transformers:
+    build:
+      context: ../../deploy/services/sentence-transformers
+      dockerfile: Dockerfile
+    ports:
+      - '8000:80'
+    environment:
+      - MODEL_NAME=all-MiniLM-L6-v2
+    networks:
+      - default
+
+networks:
+  pinecone-net:
+    name: pinecone
+  default:
+    driver: bridge 

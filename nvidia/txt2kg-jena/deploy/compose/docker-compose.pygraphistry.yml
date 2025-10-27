@@ -1,0 +1,143 @@
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    ports:
+      - '3001:3000'
+    environment:
+      - ARANGODB_URL=http://arangodb:8529
+      - ARANGODB_DB=txt2kg
+      - PINECONE_HOST=entity-embeddings
+      - PINECONE_PORT=5081
+      - PINECONE_API_KEY=pclocal
+      - PINECONE_ENVIRONMENT=local
+      - LANGCHAIN_TRACING_V2=true
+      - SENTENCE_TRANSFORMER_URL=http://sentence-transformers:8000
+      - MODEL_NAME=all-MiniLM-L6-v2
+      - GRPC_SSL_CIPHER_SUITES=HIGH+ECDSA:HIGH+aRSA
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+      # - XAI_API_KEY=${XAI_API_KEY}  # xAI integration removed
+      - PYGRAPHISTRY_SERVICE_URL=http://pygraphistry:8080
+      - GRAPHISTRY_API_KEY=${GRAPHISTRY_API_KEY:-}
+    networks:
+      - txt2kg-net
+    depends_on:
+      - arangodb
+      - entity-embeddings
+      - sentence-transformers
+      - pygraphistry
+    restart: unless-stopped
+
+  arangodb:
+    image: arangodb:latest
+    container_name: txt2kg-arangodb
+    ports:
+      - '8529:8529'
+    environment:
+      - ARANGO_NO_AUTH=1
+    volumes:
+      - arangodb_data:/var/lib/arangodb3
+      - arangodb_apps_data:/var/lib/arangodb3-apps
+    networks:
+      - txt2kg-net
+    restart: unless-stopped
+
+  arangodb-init:
+    image: arangodb:latest
+    container_name: txt2kg-arangodb-init
+    depends_on:
+      arangodb:
+        condition: service_started
+    restart: on-failure
+    networks:
+      - txt2kg-net
+    entrypoint: >
+      sh -c "
+        echo 'Waiting for ArangoDB to start...' &&
+        sleep 10 &&
+        echo 'Creating txt2kg database...' &&
+        arangosh --server.endpoint tcp://arangodb:8529 --server.authentication false --javascript.execute-string 'try { db._createDatabase(\"txt2kg\"); console.log(\"Database txt2kg created successfully!\"); } catch(e) { if(e.message.includes(\"duplicate\")) { console.log(\"Database txt2kg already exists\"); } else { throw e; } }'
+      "
+
+  entity-embeddings:
+    image: ghcr.io/pinecone-io/pinecone-index:latest
+    container_name: txt2kg-entity-embeddings
+    environment:
+      PORT: 5081
+      INDEX_TYPE: serverless
+      VECTOR_TYPE: dense
+      DIMENSION: 384
+      METRIC: cosine
+      INDEX_NAME: entity-embeddings
+    ports:
+      - "5081:5081"
+    platform: linux/amd64
+    networks:
+      - txt2kg-net
+    restart: unless-stopped
+
+  sentence-transformers:
+    build:
+      context: ../../deploy/services/sentence-transformers
+      dockerfile: Dockerfile
+    container_name: txt2kg-sentence-transformers
+    ports:
+      - '8000:8000'
+    environment:
+      - MODEL_NAME=all-MiniLM-L6-v2
+    networks:
+      - txt2kg-net
+    restart: unless-stopped
+
+  pygraphistry:
+    build:
+      context: ../../services
+      dockerfile: Dockerfile
+    container_name: txt2kg-pygraphistry
+    ports:
+      - '8080:8080'
+    environment:
+      # Optional: Only needed for Graphistry cloud features (hub.graphistry.com)
+      # Leave empty for local-only usage
+      - GRAPHISTRY_API_KEY=${GRAPHISTRY_API_KEY:-}
+      # GPU configuration
+      - CUDA_VISIBLE_DEVICES=0
+      - NVIDIA_VISIBLE_DEVICES=0
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - GRAPHISTRY_LOG_LEVEL=INFO
+      - GRAPHISTRY_GPU_ENABLED=true
+      # Local mode configuration (no cloud dependencies)
+      - GRAPHISTRY_MODE=local
+      - GRAPHISTRY_HOST=0.0.0.0
+      - GRAPHISTRY_PORT=8080
+    networks:
+      - txt2kg-net
+    # Enable GPU access for NVIDIA GPU acceleration - using both methods for compatibility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu, compute, utility]
+    # Fallback runtime for older Docker Compose versions
+    runtime: nvidia
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  arangodb_data:
+    name: txt2kg_arangodb_data
+  arangodb_apps_data:
+    name: txt2kg_arangodb_apps_data
+
+networks:
+  txt2kg-net:
+    name: txt2kg-pygraphistry
+    driver: bridge 

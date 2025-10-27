@@ -1,0 +1,42 @@
+services:
+  pygraphistry:
+    build:
+      context: ../../services
+      dockerfile: Dockerfile
+    container_name: txt2kg-pygraphistry
+    ports:
+      - '8080:8080'
+    environment:
+      # Optional: Only needed for Graphistry cloud features (hub.graphistry.com)
+      # Leave empty for local-only usage
+      - GRAPHISTRY_API_KEY=${GRAPHISTRY_API_KEY:-}
+      # GPU configuration
+      - CUDA_VISIBLE_DEVICES=all
+      - NVIDIA_VISIBLE_DEVICES=all
+      - GRAPHISTRY_LOG_LEVEL=INFO
+      - GRAPHISTRY_GPU_ENABLED=true
+      # Local mode configuration (no cloud dependencies)
+      - GRAPHISTRY_MODE=local
+      - GRAPHISTRY_HOST=0.0.0.0
+      - GRAPHISTRY_PORT=8080
+    # Enable GPU access for NVIDIA GPU acceleration
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # Additional Docker settings for GPU and memory
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    shm_size: 2gb
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s 

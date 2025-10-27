@@ -1,0 +1,35 @@
+services:
+  remote-webgpu-clustering:
+    build:
+      context: ../../services
+      dockerfile: ../deploy/docker/Dockerfile.remote-webgpu
+    container_name: txt2kg-remote-webgpu
+    ports:
+      - "0.0.0.0:8083:8083"
+    environment:
+      - PORT=8083
+      - PYTHONUNBUFFERED=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - ../../services:/app
+    networks:
+      - txt2kg-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  txt2kg-network:
+    driver: bridge
