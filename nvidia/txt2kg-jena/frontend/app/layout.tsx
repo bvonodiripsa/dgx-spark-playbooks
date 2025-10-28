@@ -22,7 +22,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "txt2kg | NVIDIA Knowledge Graph Builder",
   description: "Convert text documents to knowledge graphs using NVIDIA AI",
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -51,7 +51,7 @@ export default function RootLayout({
                 <div className="flex items-center gap-4">
                   <Link
                     href="/rag"
-                    className="flex items-center gap-2 text-sm font-medium rounded-lg px-3 py-2 transition-colors border border-[#76b900]/40 text-[#76b900] bg-[#76b900]/10 hover:bg-[#76b900]/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#76b900]/50 dark:bg-[#76b900]/20 dark:hover:bg-[#76b900]/30 dark:border-[#76b900]/50"
+                    className="hidden flex items-center gap-2 text-sm font-medium rounded-lg px-3 py-2 transition-colors border border-[#76b900]/40 text-[#76b900] bg-[#76b900]/10 hover:bg-[#76b900]/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#76b900]/50 dark:bg-[#76b900]/20 dark:hover:bg-[#76b900]/30 dark:border-[#76b900]/50"
                   >
                     <SearchIcon className="h-4 w-4 text-current" />
                     <span>RAG Search</span>

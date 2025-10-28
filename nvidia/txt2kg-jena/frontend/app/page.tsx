@@ -52,16 +52,41 @@ export default function Home() {
       setActiveTab('upload');
     }
 
-    // Listen for hash changes
+    // Listen for hash changes with automatic edit prevention
     const handleHashChange = () => {
       const newHash = window.location.hash.replace('#', '');
+      
+      // PREVENT AUTOMATIC NAVIGATION TO EDIT TAB
+      // If the navigation to edit happens within 2 seconds of processing completion,
+      // stay on the current tab instead
+      const now = Date.now();
+      const lastProcessingTime = window.lastProcessingCompleteTime || 0;
+      const timeSinceProcessing = now - lastProcessingTime;
+      
+      if (newHash === 'edit' && timeSinceProcessing < 2000) {
+        console.log('🚫 Prevented automatic navigation to edit tab');
+        // Stay on current tab, don't navigate to edit
+        return;
+      }
+      
       if (['upload', 'configure', 'edit', 'visualize'].includes(newHash)) {
         setActiveTab(newHash);
       }
     }
 
+    // Listen for processing completion to track timing
+    const handleProcessingComplete = () => {
+      window.lastProcessingCompleteTime = Date.now();
+      console.log('📝 Processing completion tracked for navigation prevention');
+    };
+
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener('processing-complete', handleProcessingComplete);
+    
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('processing-complete', handleProcessingComplete);
+    };
   }, []); // Empty dependency array - only run once on mount
 
   // Don't render until we've determined the correct tab from the URL
