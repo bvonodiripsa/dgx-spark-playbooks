@@ -234,7 +234,7 @@ Ubuntu 22.04 or later
 
 - For locally hosted NIM models: See [NVIDIA NIM documentation](https://docs.nvidia.com/nim/) for specific model requirements
 - **For PyGraphistry GPU acceleration**:
-  - NVIDIA GPU with CUDA support (RTX 20xx series or newer, Tesla V100+)
+  - NVIDIA GPU with CUDA support (RTX 20xx series or newer, Tesla A100+)
   - Minimum 8GB VRAM recommended, 16GB+ for large graphs
   - System RAM: 16GB+ recommended
 
@@ -245,9 +245,9 @@ Ubuntu 22.04 or later
 This txt2kg-jena application is specifically optimized to run on **Microsoft Azure with NVIDIA A100 GPU VMs**:
 
 - **Recommended Azure VM Sizes:**
-  - `Standard_ND96asr_v4` (8x A100 80GB) - For production workloads
-  - `Standard_ND48s_v3` (4x A100 40GB) - For development/testing  
-  - `Standard_ND24s` (4x V100 16GB) - Minimum configuration
+  - `Standard_NC96ads_A100_v4` (4x A100 ) - For production workloads
+  - `Standard_NC48ads_A100_v4` (2x A100) - For development/testing  
+  - `Standard_NC24ads_A100_v4` (1x A100) - Minimum configuration
 
 - **Azure-Specific Benefits:**
   - **High-performance computing** with A100 Tensor Core GPUs
