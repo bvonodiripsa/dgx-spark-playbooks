@@ -16,6 +16,7 @@ Use the following documentation to learn about NVIDIA txt2kg-jena:
   - [Deployment Options](#deployment-options)
   - [Driver Versions](#driver-versions)
   - [Hardware Requirements](#hardware-requirements)
+  - [Azure Cloud Deployment](#azure-cloud-deployment)
 - [Next Steps](#next-steps)
 - [Deployment Guide](#deployment-guide)
   - [Standard Deployment](#standard-deployment)
@@ -236,6 +237,32 @@ Ubuntu 22.04 or later
   - NVIDIA GPU with CUDA support (RTX 20xx series or newer, Tesla V100+)
   - Minimum 8GB VRAM recommended, 16GB+ for large graphs
   - System RAM: 16GB+ recommended
+
+### Azure Cloud Deployment
+
+**✅ Optimized for Azure A100 Virtual Machines**
+
+This txt2kg-jena application is specifically optimized to run on **Microsoft Azure with NVIDIA A100 GPU VMs**:
+
+- **Recommended Azure VM Sizes:**
+  - `Standard_ND96asr_v4` (8x A100 80GB) - For production workloads
+  - `Standard_ND48s_v3` (4x A100 40GB) - For development/testing  
+  - `Standard_ND24s` (4x V100 16GB) - Minimum configuration
+
+- **Azure-Specific Benefits:**
+  - **High-performance computing** with A100 Tensor Core GPUs
+  - **CUDA 12.0+ support** for optimal PyGraphistry acceleration
+  - **80GB GPU memory** for processing large knowledge graphs (>1M nodes)
+  - **InfiniBand networking** for multi-GPU scaling
+  - **Pre-configured NVIDIA drivers** and CUDA toolkit
+
+- **Azure Deployment Notes:**
+  - All Docker containers are compatible with Azure Container Instances
+  - Network Security Groups (NSG) should allow ports: `3001`, `3030`, `8529`, `11434`
+  - Use Azure Files or Managed Disks for persistent data storage
+  - Consider Azure Load Balancer for production scaling
+
+**🎯 Perfect for Azure AI/ML workloads requiring enterprise-grade knowledge graph processing.**
 
 ## Next Steps
 
